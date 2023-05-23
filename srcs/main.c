@@ -83,39 +83,25 @@ int main(int argc, char **argv) {
 	inet_ntop(AF_INET, &socket_address.sin_addr, resolved_address, sizeof(resolved_address));
 
 	int socket_fd;
-	bool unpriviliged = false;
 
-	socket_fd = socket(AF_INET, SOCK_RAW | SOCK_NONBLOCK, IPPROTO_ICMP);
+	socket_fd = socket(AF_INET, SOCK_DGRAM | SOCK_NONBLOCK, IPPROTO_ICMP);
 
 	if (-1 == socket_fd) {
-		if (errno == EPERM || errno == EACCES) { // raw ICMP socket not authorized for unpriviliged users but DGRAM is
-			socket_fd = socket(AF_INET, SOCK_DGRAM | SOCK_NONBLOCK, IPPROTO_ICMP);
-
-			if (-1 == socket_fd) {
-				ft_perror("unprivileged socket call failed");
-				exit(EXIT_FAILURE);
-			}
-			dprintf(2, "Socket DGRAM for unpriviliged ICMP has been initialized\n");
-
-			unpriviliged = true;
-		} else {
-			ft_perror("Socket call failed");
-			exit(EXIT_FAILURE);
-		}
+		ft_perror("unprivileged socket call failed");
+		exit(EXIT_FAILURE);
 	}
+	dprintf(2, "Socket DGRAM for unpriviliged ICMP has been initialized\n");
 
-//	dprintf(2, "fd for socket is %d\n", socket_fd);
 	if (-1 == set_socket_options(socket_fd)) {
+		ft_perror("set_socket_options");
 		exit(EXIT_FAILURE);
 	}
 
 	g_socket_fd = socket_fd;
-	/* signal(SIGALRM, receive_echo_reply); */
-
 	signal(SIGINT, end);
 	
 
-//	dprintf(2, "getpid() == %u\n", getpid());
+	dprintf(2, "getpid() == %u\n", getpid());
 
 	uint8_t		icmp_message[sizeof (struct icmphdr ) + sizeof(struct timeval) + sizeof (STATIC_PAYLOAD) + 10];
 
