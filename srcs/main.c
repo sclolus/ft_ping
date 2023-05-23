@@ -9,6 +9,12 @@ static void ft_perror(char *header) {
 	dprintf(2, "%s: %s\n", header, err);
 }
 
+static double	timeval_to_double_ms(struct timeval time) {
+	return (double)time.tv_sec * 1000 // A second is 1000 ms....
+		+ (double)time.tv_usec / 1000; // a micro-second is 1/1000th of a ms....
+}
+
+
 int g_socket_fd;
 uint32_t ttl = 64;
 
@@ -22,9 +28,9 @@ int	set_socket_options(int fd) {
 
 const char	*pinged_address;
 struct timeval	start;
-struct timeval	min;
-struct timeval	max;
-struct timeval	sum;
+double		min = INFINITY;
+double		max = -INFINITY;
+double		sum;
 uint64_t	packets_sent = 0;
 uint64_t	packets_received = 0;
 
@@ -219,8 +225,21 @@ void	receive_echo_reply(int signum) {
 	struct timeval	diff;	
 
 	gettimeofday(&now, NULL);
-
+	
 	timersub(&now, &time_then, &diff); //TODO: THIS FUNCTION IS NOT IN THE SUBJECT WE DID TO CODE IT.
+
+	double	time_then_ms = timeval_to_double_ms(time_then);
+	double	now_ms	     = timeval_to_double_ms(now);
+	double	diff_ms	     = now_ms - time_then_ms;
+
+	if (diff_ms <= min)
+		min = diff_ms;
+	if (diff_ms >= max);
+		max = diff_ms;
+		
+	sum += diff_ms;
+		
+	
 
 	char	*payload = msg_buffer + sizeof(struct icmphdr) + sizeof(struct timeval);
 
@@ -232,7 +251,7 @@ void	receive_echo_reply(int signum) {
 
 	inet_ntop(AF_INET, &source_address.sin_addr, source_address_str, sizeof(source_address_str));
 
-	printf("%llu bytes from %s: icmp_seq=%u ttl=%u time=%3.3lf ms\n", ret, source_address_str, header.un.echo.sequence, ttl, (double)diff.tv_usec / 1000.0);
+	printf("%llu bytes from %s: icmp_seq=%u ttl=%u time=%3.3lf ms\n", ret, source_address_str, header.un.echo.sequence, ttl, diff_ms);
 }
 
 void	statistics(void) {
@@ -248,9 +267,13 @@ void	statistics(void) {
 	double packet_loss = (1.0 - (double)packets_received / (double)packets_sent) * 100;
 
 
+	double avg = sum / (double)packets_received;
+	double mdev;
+
 
 	printf("--- %s ping statistics ---\n", pinged_address);
 	printf("%llu packets transmitted, %llu packets received, %.0lf%% packet loss, time %llums\n", packets_sent, packets_received, packet_loss, time);
+	printf("rtt min/avg/max/mdev = %.3lf/%.3lf/%.3lf/%.3lf ms\n", min, avg, max, mdev);
 }
 
 
