@@ -78,7 +78,8 @@ const char	*pinged_address;
 struct timeval	start;
 double		min = INFINITY;
 double		max = -INFINITY;
-double		sum;
+double		sum = 0.0;
+double		sum_of_squares = 0.0;
 uint64_t	packets_sent = 0;
 uint64_t	packets_received = 0;
 
@@ -303,7 +304,7 @@ void	receive_echo_reply() {
 		if (diff_ms >= max)
 			max = diff_ms;
 		sum += diff_ms;
-		
+		sum_of_squares += diff_ms * diff_ms;
 	
 
 		char	*payload = (char*)msg_buffer + sizeof(struct icmphdr) + sizeof(struct timeval);
@@ -409,6 +410,8 @@ void	statistics(void) {
 
 	double avg = sum / (double)packets_received;
 	double mdev;
+
+	mdev = sqrt(sum_of_squares / packets_received - avg * avg); // We use the identity of standard deviation "For a finite population with equal probabilities at all points"
 
 	char	optional_dup[64];
 
