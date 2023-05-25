@@ -170,12 +170,10 @@ int main(int argc, char **argv) {
 		struct timeval	now;
 		gettimeofday(&now, NULL);
 
-		struct timeval	diff;
+		double		ms_diff = timeval_to_double_ms(now) - timeval_to_double_ms(prev);
 
 
-		timersub(&now, &prev, &diff); // TODO: THIS FUNCTION IS NOT IN THE SUBJECT WE NEED TO CODE IT.
-		
-		if (diff.tv_sec >= 1) { // we're due to send a packet.
+		if (ms_diff >= 1000) { // we're due to send a packet.
 		
 			int		flags = MSG_DONTWAIT;
 			struct icmphdr	header;
@@ -194,8 +192,6 @@ int main(int argc, char **argv) {
 			ft_memcpy(icmp_message + sizeof(struct icmphdr) + sizeof (struct timeval), STATIC_PAYLOAD, sizeof (STATIC_PAYLOAD));
 			ft_strcpy((char *)(icmp_message + sizeof(struct icmphdr) + sizeof(struct timeval) + sizeof (STATIC_PAYLOAD) - 1), spid);
 
-
-			
 			int bytes = sendto(socket_fd,
 					   icmp_message,
 					   sizeof(icmp_message),
