@@ -246,8 +246,8 @@ void	receive_echo_reply() {
 	struct sockaddr_in	source_address;
 	int			flags = MSG_DONTWAIT;
 
-	uint8_t			msg_buffer[4096]; // Way too big buffer for receving the ECHO_REPLY...
-	uint8_t			control_buffer[4096];
+	uint8_t			msg_buffer[4096]; // Way too big buffer for receiving the ECHO_REPLY...
+	uint8_t			control_buffer[20480]; // sysctl net.core.optmem_max
 
 	struct iovec		msg_iov = {
 		.iov_base = msg_buffer,
@@ -371,7 +371,7 @@ void	receive_error_message() {
 	int			flags = MSG_DONTWAIT | MSG_ERRQUEUE;
 
 	uint8_t			msg_buffer[4096]; // Way too big buffer for receving the ECHO_REPLY...
-	uint8_t			control_buffer[4096]; // TODO: how big do we need it?
+	uint8_t			control_buffer[20480]; // net.core.optmem_max
 
 	struct iovec		msg_iov = {
 		.iov_base = msg_buffer,
@@ -384,7 +384,7 @@ void	receive_error_message() {
 	msg.msg_iov = &msg_iov;
 	msg.msg_iovlen = 1;
 	
-	msg.msg_control = control_buffer; // I don't know if I need this
+	msg.msg_control = control_buffer;
 	msg.msg_controllen = sizeof(control_buffer);
 	
 	msg.msg_flags = 0; // Could be set after call
@@ -400,13 +400,14 @@ void	receive_error_message() {
 
 	}
 
-	uint8_t source_address_str[NI_MAXHOST];
+	uint8_t source_address_hostname_str[NI_MAXHOST];
 	uint8_t	source_address_raw_str[INET_ADDRSTRLEN];
 		
 	inet_ntop(AF_INET, &source_address.sin_addr,
 		  (char *)source_address_raw_str, sizeof(source_address_raw_str));
-	getnameinfo((const struct sockaddr *)&source_address, sizeof(source_address), (char *)source_address_str, sizeof(source_address_str), NULL, 0, 0);
-
+	getnameinfo((const struct sockaddr *)&source_address, sizeof(source_address),
+		    (char *)source_address_hostname_str, sizeof(source_address_hostname_str),
+		    NULL, 0, 0);
 	
 	if (ret < ICMP_MINLEN) {
 		dprintf(2, "packet too short (%ld bytes) from %s\n", ret, source_address_raw_str);
@@ -427,7 +428,20 @@ void	receive_error_message() {
 			ft_memcpy(&err, CMSG_DATA(cmsg), sizeof(err));
 
 			if (err.ee_origin == SO_EE_ORIGIN_ICMP) {
-				printf("From %s (%s) icmp_seq=%d ", source_address_str, source_address_str, header.un.echo.sequence); // TODO: Address resolution or not?
+
+				struct sockaddr_in *offender = SO_EE_OFFENDER((struct sock_extended_err*)CMSG_DATA(cmsg));
+
+				inet_ntop(AF_INET, &offender->sin_addr,
+					  (char *)source_address_raw_str, sizeof(source_address_raw_str));
+				getnameinfo((const struct sockaddr *)offender, sizeof(source_address),
+					    (char *)source_address_hostname_str, sizeof(source_address_hostname_str),
+					    NULL, 0, 0);
+					
+				if (argument_address_type == RAW_ADDRESS)
+					printf("From %s icmp_seq=%d ", source_address_raw_str, source_address_raw_str, header.un.echo.sequence);
+				else 
+					printf("From %s (%s) icmp_seq=%d ", source_address_hostname_str, source_address_raw_str, header.un.echo.sequence);
+
 				if (err.ee_type == ICMP_TIME_EXCEEDED) {
 					printf("Time to live exceeded\n");
 				} else if (err.ee_type == ICMP_DEST_UNREACH) {
