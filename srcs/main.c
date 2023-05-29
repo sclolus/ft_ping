@@ -1,8 +1,6 @@
 #include "ft_ping.h"
 #include <stdbool.h>
 
-#define USAGE "ft_ping: [-v] [-h] <destination>\n"
-
 static char	const **recvmsg_flags_strings(int flags) {
 	static const struct {
 		int	bits;
@@ -16,7 +14,7 @@ static char	const **recvmsg_flags_strings(int flags) {
 	};
 	
 # define count (sizeof(flags_info) / sizeof(*flags_info)) // Merely because const compile-time-computable variables cannot be used as sizes for constant size arrays...
-
+	
 	static char const *returned_string[count + 1];
 
 	uint32_t	i;
@@ -51,7 +49,7 @@ uint32_t	sequence = 1;
 uint32_t	duplicate_count = 0;
 uint32_t	error_count = 0;
 bool		current_sequence_already_responded = false;
-bool		suppress_dup_packet_reporting = false;
+bool		suppress_dup_packet_reporting = true;
 
 
 int	set_socket_options(int fd) {
@@ -83,17 +81,44 @@ double		sum_of_squares = 0.0;
 uint64_t	packets_sent = 0;
 uint64_t	packets_received = 0;
 
+enum {
+	RAW_ADDRESS,
+	HOSTNAME,
+} argument_address_type;
+
 int main(int argc, char **argv) {
 
 	(void)argc;
 	(void)argv;
 
-	if (argc != 2) {
+	if (argc <= 1) {
 		dprintf(2, USAGE);
 		exit(EXIT_FAILURE);
 	}
 
-	char *argument_address = argv[1];
+	int	opt_return;
+
+	while (-1 != (opt_return = ft_getopt(argc, argv, "vh"))) {
+		char	current_option = (char)opt_return;
+
+		switch (current_option) {
+		case 'v':
+			suppress_dup_packet_reporting = false;
+			break;
+		case 'h':
+			dprintf(2, USAGE);
+			exit(EXIT_FAILURE);
+			break;
+		case '?':
+		default:
+			dprintf(2, "\n%s", USAGE);
+			exit(EXIT_FAILURE);
+			break;
+		}
+	}
+	
+
+	char *argument_address = argv[g_optind];
 
 	pinged_address = argument_address;
 
@@ -113,7 +138,7 @@ int main(int argc, char **argv) {
 			.ai_socktype = SOCK_DGRAM,
 			/* .ai_protocol = IPPROTO_ICMP, */
 			.ai_protocol = 0,
-			.ai_flags = AI_CANONNAME,
+			.ai_flags = 0,
 		};
 		
 		int failure = getaddrinfo(argument_address, NULL, &hints, &matched_addresses);
@@ -121,18 +146,20 @@ int main(int argc, char **argv) {
 		if (failure) {
 			const char *error_string = gai_strerror(failure);
 			
-			dprintf(2, "ping: %s: %s\n", argument_address, error_string);
+			dprintf(2, "ft_ping: %s: %s\n", argument_address, error_string);
 			exit(EXIT_FAILURE);
 		}
 
+		argument_address_type = HOSTNAME;
+
 		socket_address = *((struct sockaddr_in*)matched_addresses->ai_addr); //Should be struct sockaddr_in
-		dprintf(2, "%s! proto: %d\n", matched_addresses->ai_canonname, matched_addresses->ai_protocol);
+		freeaddrinfo(matched_addresses);
 	} else {
-		dprintf(2, "No getaddrinfo was called as it is unnecessary\n");
-			
 		socket_address.sin_addr = internet_address;
 		socket_address.sin_family = AF_INET;
 		socket_address.sin_port = 0; // Should not matter for icmp
+
+		argument_address_type = RAW_ADDRESS;
 	}
 
 	inet_ntop(AF_INET, &socket_address.sin_addr, (char*)resolved_address, sizeof(resolved_address));
@@ -142,26 +169,24 @@ int main(int argc, char **argv) {
 	socket_fd = socket(AF_INET, SOCK_DGRAM | SOCK_NONBLOCK, IPPROTO_ICMP);
 
 	if (-1 == socket_fd) {
-		ft_perror("unprivileged socket call failed");
+		ft_perror("socket()");
 		exit(EXIT_FAILURE);
 	}
-	dprintf(2, "Socket DGRAM for unpriviliged ICMP has been initialized\n");
-
+	
 	if (-1 == set_socket_options(socket_fd)) {
-		ft_perror("set_socket_options");
+		ft_perror("set_socket_options()");
 		exit(EXIT_FAILURE);
 	}
 
 	g_socket_fd = socket_fd;
 	signal(SIGINT, end);
 	
+	uint8_t		icmp_message[sizeof (struct icmphdr) + DEFAULT_PAYLOAD_SIZE];
+	const uint32_t	payload_size = DEFAULT_PAYLOAD_SIZE;
+	const uint32_t	packet_size = sizeof (icmp_message);
 
-	dprintf(2, "getpid() == %u\n", getpid());
 
-	uint8_t		icmp_message[sizeof (struct icmphdr ) + sizeof(struct timeval) + sizeof (STATIC_PAYLOAD) + 10];
-
-
-	printf("PING %s (%s) %lu(%lu) bytes of data.\n", argument_address, resolved_address, sizeof(icmp_message) - sizeof(struct icmphdr), sizeof(icmp_message) + 20); // + 20 for the size of the ipv4 hdr
+	printf("PING %s (%s) %u(%u) bytes of data.\n", argument_address, resolved_address, payload_size, packet_size + 20); // + 20 for the size of the ipv4 hdr
 
 	struct timeval prev;	
 	gettimeofday(&start, NULL);
@@ -174,8 +199,7 @@ int main(int argc, char **argv) {
 		double		ms_diff = timeval_to_double_ms(now) - timeval_to_double_ms(prev);
 
 
-		if (ms_diff >= 1000) { // we're due to send a packet.
-		
+		if (ms_diff >= 1000) { // we're due to send a packet.		
 			int		flags = MSG_DONTWAIT;
 			struct icmphdr	header;
 
@@ -195,7 +219,7 @@ int main(int argc, char **argv) {
 
 			int bytes = sendto(socket_fd,
 					   icmp_message,
-					   sizeof(icmp_message),
+					   packet_size,
 					   flags,
 					   (struct sockaddr*)&socket_address,
 					   sizeof(struct sockaddr_in));
@@ -210,14 +234,11 @@ int main(int argc, char **argv) {
 			packets_sent++;
 			sequence++;
 			gettimeofday(&prev, NULL);
-			dprintf(2, "Send packet\n");
 		}
 		receive_echo_reply();
 		receive_error_message();
 		usleep(20);
 	}
-
-	return 0;
 }
 
 void	receive_echo_reply() {
@@ -247,43 +268,52 @@ void	receive_echo_reply() {
 	ssize_t	ret = recvmsg(g_socket_fd, &msg, flags);
 
 
-	if (-1 == ret) {
+	if (-1 >= ret) {
 		if (errno == EAGAIN || errno == EWOULDBLOCK) { // Socket hasn't received packet.
 			return ;
 		}
-		
-		dprintf(2, "Silently ignoring error...\n");
+		/* dprintf(2, "Silently ignoring error...\n"); */
 		return ;
 	}
 
+	uint8_t source_address_hostname_str[NI_MAXHOST];
+	uint8_t	source_address_raw_str[INET_ADDRSTRLEN];
 
-	dprintf(2, "flags: %u\n", msg.msg_flags);
-	dprintf(2, "--- flags ---\n");
-	for (char const **flag = recvmsg_flags_strings(msg.msg_flags); *flag != NULL; flag++) {
-		dprintf(2, "Flag returned by recvmsg: %s\n", *flag);
+
+	getnameinfo((const struct sockaddr *)&source_address, sizeof(source_address),
+		    (char *)source_address_hostname_str, sizeof(source_address_hostname_str),
+		    NULL, 0, 0);
+	inet_ntop(AF_INET, &source_address.sin_addr,
+		  (char *)source_address_raw_str, sizeof(source_address_raw_str));
+
+	if ((size_t)ret < ICMP_MINLEN + sizeof(struct timeval)) {
+		dprintf(2, "packet too short (%ld bytes) from %s\n", ret, source_address_raw_str);
+		return ; 
 	}
-	dprintf(2, "-------------\n");
 
+
+	/* dprintf(2, "flags: %u\n", msg.msg_flags); */
+	/* dprintf(2, "--- flags ---\n"); */
+	/* for (char const **flag = recvmsg_flags_strings(msg.msg_flags); *flag != NULL; flag++) { */
+	/* 	dprintf(2, "Flag returned by recvmsg: %s\n", *flag); */
+	/* } */
+	/* dprintf(2, "-------------\n"); */
 	
 	struct icmphdr	header;
 
 	header = *((struct icmphdr*)msg_buffer);
 
-	dprintf(2, "Received msg of size: %lu \n Header type: %u\n Header code: %u\n Header echo id %u\n Header echo sequence %u\n", ret, header.type, header.code, header.un.echo.id, header.un.echo.sequence);
+	/* dprintf(2, "Received msg of size: %lu \n Header type: %u\n Header code: %u\n Header echo id %u\n Header echo sequence %u\n", ret, header.type, header.code, header.un.echo.id, header.un.echo.sequence); */
 
 	
-	uint8_t	source_address_str[INET_ADDRSTRLEN];
-	
-	inet_ntop(AF_INET, &source_address.sin_addr, (char*)source_address_str, sizeof(source_address_str));
-
 	int	packet_ttl = ttl; // if not found resort to default ttl
 	
 	for (struct cmsghdr *cmsg = CMSG_FIRSTHDR(&msg); cmsg != NULL; cmsg = CMSG_NXTHDR(&msg, cmsg)) {
-		dprintf(2, "cmsg.level = %d, cmsg.type = %d\n", cmsg->cmsg_level, cmsg->cmsg_type);
+		/* dprintf(2, "cmsg.level = %d, cmsg.type = %d\n", cmsg->cmsg_level, cmsg->cmsg_type); */
 		if (cmsg->cmsg_level == IPPROTO_IP && cmsg->cmsg_type == IP_TTL) {
 			ft_memcpy(&packet_ttl, CMSG_DATA(cmsg), sizeof(packet_ttl));
 
-			dprintf(2, "Found ttl: %d!\n", packet_ttl);			
+			/* dprintf(2, "Found ttl: %d!\n", packet_ttl);			 */
 		}
 	}
 
@@ -309,9 +339,9 @@ void	receive_echo_reply() {
 
 		char	*payload = (char*)msg_buffer + sizeof(struct icmphdr) + sizeof(struct timeval);
 
-		dprintf(2, "Payload is: %s\n", payload);
+		/* dprintf(2, "Payload is: %s\n", payload); */
 
-		dprintf(2, "name (of len %u): \n", msg.msg_namelen);
+		/* dprintf(2, "name (of len %u): \n", msg.msg_namelen); */
 
 		char	*extra = "";
 
@@ -325,7 +355,11 @@ void	receive_echo_reply() {
 			current_sequence_already_responded = true;
 		}
 
-		printf("%ld bytes from %s: icmp_seq=%u ttl=%u time=%3.3lf ms%s\n", ret, source_address_str, header.un.echo.sequence, packet_ttl, diff_ms, extra);
+		if (argument_address_type == RAW_ADDRESS) {
+			printf("%ld bytes from %s: icmp_seq=%u ttl=%u time=%3.3lf ms%s\n", ret, source_address_raw_str, header.un.echo.sequence, packet_ttl, diff_ms, extra);
+		} else {
+			printf("%ld bytes from %s (%s): icmp_seq=%u ttl=%u time=%3.3lf ms%s\n", ret, source_address_hostname_str, source_address_raw_str, header.un.echo.sequence, packet_ttl, diff_ms, extra);
+		}
 	} else {
 		dprintf(2, "Response of unknown type received\n");
 	}
@@ -357,45 +391,52 @@ void	receive_error_message() {
 
 	ssize_t	ret = recvmsg(g_socket_fd, &msg, flags);
 
-	if (-1 == ret) {
+	if (-1 >= ret) {
 		if (errno == EAGAIN || errno == EWOULDBLOCK) { // Socket hasn't received packet.
 			return ;
 		}
-		dprintf(2, "Silently ignoring error...\n");
+		/* dprintf(2, "Silently ignoring error...\n"); */
 		return ;
 
+	}
+
+	uint8_t source_address_str[NI_MAXHOST];
+	uint8_t	source_address_raw_str[INET_ADDRSTRLEN];
+		
+	inet_ntop(AF_INET, &source_address.sin_addr,
+		  (char *)source_address_raw_str, sizeof(source_address_raw_str));
+	getnameinfo((const struct sockaddr *)&source_address, sizeof(source_address), (char *)source_address_str, sizeof(source_address_str), NULL, 0, 0);
+
+	
+	if (ret < ICMP_MINLEN) {
+		dprintf(2, "packet too short (%ld bytes) from %s\n", ret, source_address_raw_str);
+		return ; 
 	}
 
 	struct icmphdr	header;
 
 	header = *((struct icmphdr*)msg_buffer);
 
-	dprintf(2, "Received msg of size: %lu \n Header type: %u\n Header code: %u\n Header echo id %u\n Header echo sequence %u\n", ret, header.type, header.code, header.un.echo.id, header.un.echo.sequence);
-
-	
-	uint8_t	source_address_str[INET_ADDRSTRLEN];
-	
-	inet_ntop(AF_INET, &source_address.sin_addr, (char *)source_address_str, sizeof(source_address_str));
+	/* dprintf(2, "Received msg of size: %lu \n Header type: %u\n Header code: %u\n Header echo id %u\n Header echo sequence %u\n", ret, header.type, header.code, header.un.echo.id, header.un.echo.sequence); */
 
 	for (struct cmsghdr *cmsg = CMSG_FIRSTHDR(&msg); cmsg != NULL; cmsg = CMSG_NXTHDR(&msg, cmsg)) {
-		dprintf(2, "Error: cmsg.level = %d, cmsg.type = %d\n", cmsg->cmsg_level, cmsg->cmsg_type);
+		/* dprintf(2, "Error: cmsg.level = %d, cmsg.type = %d\n", cmsg->cmsg_level, cmsg->cmsg_type); */
 		if (cmsg->cmsg_level == IPPROTO_IP && cmsg->cmsg_type == IP_RECVERR) {
 			struct sock_extended_err err;
 
 			ft_memcpy(&err, CMSG_DATA(cmsg), sizeof(err));
 
 			if (err.ee_origin == SO_EE_ORIGIN_ICMP) {
+				printf("From %s (%s) icmp_seq=%d ", source_address_str, source_address_str, header.un.echo.sequence); // TODO: Address resolution or not?
 				if (err.ee_type == ICMP_TIME_EXCEEDED) {
-					printf("From %s (%s) icmp_seq=%d Time to live exceeded\n", source_address_str, source_address_str, header.un.echo.sequence); // TODO: Address resolution or not?
+					printf("Time to live exceeded\n");
 				} else if (err.ee_type == ICMP_DEST_UNREACH) {
-					printf("From %s (%s) icmp_seq=%d Destination Host Unreachable\n", source_address_str, source_address_str, header.un.echo.sequence); // TODO: Address resolution or not?
+					printf("Destination Host Unreachable\n");
 				}
 				error_count++;
 			}
 		}
 	}
-
-
 }
 
 void	statistics(void) {
@@ -415,17 +456,16 @@ void	statistics(void) {
 
 	char	optional_dup[64];
 
+	optional_dup[0] = '\0';
 	if (duplicate_count > 0)
 		snprintf(optional_dup, sizeof(optional_dup), ", +%u duplicates", duplicate_count);
-	else
-		snprintf(optional_dup, sizeof(optional_dup), "");
 	
 	char	optional_error[64];
 
+
+	optional_error[0] = '\0';
 	if (error_count > 0)
 		snprintf(optional_error, sizeof(optional_error), ", +%u errors", error_count);
-	else
-		snprintf(optional_error, sizeof(optional_error), "");
 
 	printf("\n--- %s ping statistics ---\n", pinged_address);
 	printf("%lu packets transmitted, %lu packets received%s%s, %.0lf%% packet loss, time %.0lfms\n", packets_sent, packets_received, optional_dup, optional_error, packet_loss, time);

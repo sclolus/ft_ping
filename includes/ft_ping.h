@@ -19,7 +19,18 @@
 
 # include "libft.h"
 
+
 # define STATIC_PAYLOAD "ft_ping#"
+# define DEFAULT_PAYLOAD_SIZE 56
+
+# define MAX(a, b) (a <= b ? b : a)
+
+#define USAGE "Usage\n\
+  ft_ping [options] <destination>\n\
+Options:\n\
+  -v                 verbose output\n\
+  -h                 print help and exit\n"
+
 
 void	receive_echo_reply();
 void	receive_error_message();
