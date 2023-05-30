@@ -228,6 +228,10 @@ int main(int argc, char **argv) {
 			
 			current_sequence_already_responded = false;
 			if (failure) {
+				if (errno == EACCES) {
+					dprintf(2, "%sDo you want to ping broadcast? Then -b. If not, check your local firewall rules\n", ERROR_NAME_HEADER);
+					exit(EXIT_FAILURE);
+				}
 				ft_perror("Sendto(): ");
 				exit(EXIT_FAILURE);			
 			}
@@ -491,7 +495,6 @@ void	statistics(void) {
 
 void	end(int signum) {
 	(void)signum;
-
 
 	statistics();
 	exit(EXIT_SUCCESS);
