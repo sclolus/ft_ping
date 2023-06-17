@@ -46,7 +46,13 @@ struct {
 	{ ICMP_DEST_UNREACH, ICMP_NET_UNKNOWN, "network-unknown" },
 	{ ICMP_DEST_UNREACH, ICMP_HOST_UNKNOWN, "host-unknown" },
 	{ ICMP_DEST_UNREACH, ICMP_HOST_ISOLATED, "host-isolated" },
+	{ ICMP_DEST_UNREACH, ICMP_NET_ANO, "net-ano" },
+	{ ICMP_DEST_UNREACH, ICMP_HOST_ANO, "host-ano" },			
 	{ ICMP_DEST_UNREACH, ICMP_NET_UNR_TOS, "destination-network-unreachable-at-this-tos" },
+	{ ICMP_DEST_UNREACH, ICMP_HOST_UNR_TOS, "destination-host-unreachable-at-this-tos" },
+	{ ICMP_DEST_UNREACH, ICMP_PKT_FILTERED, "pkt-filtered" },
+	{ ICMP_DEST_UNREACH, ICMP_PREC_VIOLATION, "precedence-violation" },
+	{ ICMP_DEST_UNREACH, ICMP_PREC_CUTOFF, "precedence-cutoff" },
 	{ ICMP_DEST_UNREACH, ICMP_HOST_UNR_TOS, "destination-host-unreachable-at-this-tos" },
 	{ ICMP_REDIRECT, ICMP_REDIR_NET, "redirect-network" },
 	{ ICMP_REDIRECT, ICMP_REDIR_HOST, "redirect-host" },
@@ -54,6 +60,7 @@ struct {
 	{ ICMP_REDIRECT, ICMP_REDIR_HOSTTOS, "redirect-type-of-service-and-host" },
 	{ ICMP_TIME_EXCEEDED, ICMP_EXC_TTL, "time-to-live-exceeded" },
 	{ ICMP_TIME_EXCEEDED, ICMP_EXC_FRAGTIME, "frag-reassembly-time-exceeded" },
+	{ ICMP_PARAMPROB, ICMP_PARAMPROB_OPTABSENT, "requested-option-absent" },
 };
 
 uint8_t	get_icmp_code(char *code) {
