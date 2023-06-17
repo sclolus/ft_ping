@@ -1,3 +1,4 @@
+
 #ifndef __FT_PING_H__
 # define __FT_PING_H_
 
@@ -29,10 +30,12 @@
   ft_ping [options] <destination>\n\
 Options:\n\
   -v                 verbose output\n\
-  -h                 print help and exit\n"
+  -h                 print help and exit\n\
+For more details see ping(8)\n"
 
 
 void	receive_echo_reply();
+void	receive_response();
 void	receive_error_message();
 void	end(int signum);
 #endif
