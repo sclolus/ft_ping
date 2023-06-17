@@ -1,4 +1,3 @@
-
 #ifndef __FT_PING_H__
 # define __FT_PING_H_
 
