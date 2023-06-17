@@ -45,7 +45,7 @@ static double	timeval_to_double_ms(struct timeval time) {
 
 int		g_socket_fd;
 uint32_t	ttl = 64;
-uint32_t	sequence = 1;
+uint32_t	sequence = 0;
 uint32_t	duplicate_count = 0;
 uint32_t	error_count = 0;
 bool		current_sequence_already_responded = false;
