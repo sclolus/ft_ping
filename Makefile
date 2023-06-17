@@ -33,9 +33,11 @@ $(NAME_TESTER): $(OBJ_TESTER)
 
 clean:
 	rm -f $(OBJ) $(OBJ_TESTER)
+	rm -f ft.log ping.log
 	make -C $(LIBFT_PATH) clean
 fclean: clean
 	rm -f $(NAME) $(NAME_TESTER)
+	rm -f ft.log ping.log
 	make -C $(LIBFT_PATH) fclean
 
 re: fclean all
