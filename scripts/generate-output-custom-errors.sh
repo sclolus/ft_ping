@@ -1,4 +1,5 @@
 #!/bin/bash
+# ./scripts/generate-output-custom-errors.sh <duration> <type> <code> <ping cmd>
 
 ./scripts/turn_off_icmp_echo.sh
 

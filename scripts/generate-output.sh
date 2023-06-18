@@ -1,5 +1,5 @@
 #!/bin/bash
-
+# ./scripts/generate-output.sh <duration> <ping cmd>
 REAL_PING=./real_ping
 
 echo The executed commands will be like:

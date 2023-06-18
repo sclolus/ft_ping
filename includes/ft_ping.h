@@ -24,6 +24,7 @@
 # define DEFAULT_PAYLOAD_SIZE 56
 
 # define MAX(a, b) (a <= b ? b : a)
+# define ITEM_COUNT(t) (sizeof(t) / sizeof(*t))
 
 # define USAGE "Usage\n\
   ft_ping [options] <destination>\n\

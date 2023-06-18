@@ -22,8 +22,6 @@ struct {
 	{ ICMP_ADDRESSREPLY, "address-mask-reply" },       
 };
 
-# define ITEM_COUNT(t) (sizeof(t) / sizeof(*t))
-
 uint8_t	get_icmp_type(char *type) {
 	for (uint32_t i = 0; i < ITEM_COUNT(icmp_types); i++) {
 		if (!strcmp(type, icmp_types[i].name))
