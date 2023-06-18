@@ -296,7 +296,7 @@ int main(int argc, char **argv) {
 			receive_response();
 		} else {
 			receive_echo_reply();
-			receive_error_message();
+			/* receive_error_message(); */ // Actually the subject ping doesn't do that so...
 		}
 		usleep(20);
 	}
