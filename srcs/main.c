@@ -26,19 +26,15 @@ static char	const **recvmsg_flags_strings(int flags) {
 		{ MSG_ERRQUEUE, "extended error in queue" },
 	};
 	
-# define count (sizeof(flags_info) / sizeof(*flags_info)) // Merely because const compile-time-computable variables cannot be used as sizes for constant size arrays...
-	
-	static char const *returned_string[count + 1];
+	static char const *returned_string[ITEM_COUNT(flags_info) + 1];
 
 	uint32_t	i;
-	for (i = count; i < count ; i++) {
+	for (i = 0; i < ITEM_COUNT(flags_info) ; i++) {
 		if (flags & flags_info[i].bits) {
 			returned_string[i] = flags_info[i].string;
 		}
 	}
 
-# undef count
-	
 	returned_string[i] = NULL;
 
 	return returned_string;
@@ -448,7 +444,7 @@ struct {
 	{ ICMP_TIME_EXCEEDED, ICMP_EXC_FRAGTIME, "Frag reassembly time exceeded" },
 };
 
-uint32_t	icmp_specific_descriptions_size = sizeof(icmp_specific_descriptions) / sizeof(*icmp_specific_descriptions);
+uint32_t	icmp_specific_descriptions_size = ITEM_COUNT(icmp_specific_descriptions);
 
 void	print_specific_icmp_code(int type, int code) {
 	for (uint32_t i = 0; i < icmp_specific_descriptions_size; i++) {
@@ -477,7 +473,7 @@ struct {
 	{ ICMP_ADDRESSREPLY, "Address Mask reply" },       
 };
 
-uint32_t	icmp_descriptions_size = sizeof(icmp_descriptions) / sizeof(*icmp_descriptions);
+uint32_t	icmp_descriptions_size = ITEM_COUNT(icmp_descriptions);
 
 void	receive_error_message() {
 	struct msghdr		msg;
