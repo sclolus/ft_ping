@@ -4,7 +4,7 @@ GENERAL_TEST=./tests/all-errors.sh
 rm -f $GENERAL_TEST
 echo "#!/bin/bash" >> $GENERAL_TEST
 
-echo "echo-reply
+echo "echo-reply default
 	destination-unreachable destination-net-unreachable
 	destination-unreachable destination-host-unreachable
 	destination-unreachable destination-protocol-unreachable
@@ -22,21 +22,21 @@ echo "echo-reply
 	destination-unreachable precedence-violation
 	destination-unreachable precedence-cutoff
 	destination-unreachable destination-host-unreachable-at-this-tos
-	source-quench
+	source-quench default
 	redirect redirect-network
 	redirect redirect-host
 	redirect redirect-type-of-service-and-network
 	redirect redirect-type-of-service-and-host
-	echo-request
+	echo-request default
 	time-exceeded time-to-live-exceeded
 	time-exceeded frag-reassembly-time-exceeded
 	parameter-prob requested-option-absent
-	timestamp
-	timestamp-reply
-	info-request
-	info-reply
-	address-request
-	address-mask-reply" |
+	timestamp default
+	timestamp-reply default
+	info-request default
+	info-reply default
+	address-request default
+	address-mask-reply default" |
 
     while read line
     do
@@ -47,7 +47,7 @@ echo "echo-reply
 " > tests/$FILENAME
 	chmod +x tests/$FILENAME
 
-	echo "./tests/$FILENAME \$1 \${@:2}" >> $GENERAL_TEST
+	echo "./tests/$FILENAME \$1 \${@:2} localhost" >> $GENERAL_TEST
     done
 
 chmod +x $GENERAL_TEST

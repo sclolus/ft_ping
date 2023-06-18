@@ -1,15 +1,21 @@
 #!/bin/bash
 # ./scripts/generate-output-custom-errors.sh <duration> <type> <code> <ping cmd>
 
-./scripts/turn_off_icmp_echo.sh
+sudo ./scripts/turn_off_icmp_echo.sh
 
-echo The pings will be tested against a custom icmp error scheme
+echo The pings will be tested against custom icmp error scheme: $2 $3
 
-./pong $2 $3 >/dev/null 2>/dev/null &
+sudo ./pong $2 $3  > /dev/null & 
 PONG_PID=$!
+echo $PONG_PID is the now pong pid
+sleep 1
 
 ./scripts/generate-output.sh $1 ${@:4}
 
-kill -SIGKILL $PONG_PID
+echo Killing and waiting for $PONG_PID
+setsid sudo kill $PONG_PID # Fuck my goddamn life...
 
-./scripts/turn_on_icmp_echo.sh
+wait $PONG_PID
+echo $PONG_PID was killed and waited for...
+
+sudo ./scripts/turn_on_icmp_echo.sh

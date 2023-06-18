@@ -13,7 +13,7 @@ OBJ_TESTER= $(SRC_TESTER:.c=.o)
 
 HDR_PATH= ./libft/includes/
 CC= gcc
-CC_FLAGS= -v -Ofast -Wall -Wextra -g3  -fsanitize=address
+CC_FLAGS= -v -Ofast -Wall -Wextra  -g3  -fsanitize=address
 LIBFT_PATH=./libft
 FLAGS= -L$(LIBFT_PATH) -lft -I$(HDR_PATH) -I./includes
 
