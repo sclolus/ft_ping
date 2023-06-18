@@ -2,6 +2,19 @@
 #include <stdbool.h>
 
 
+int		g_socket_fd;
+uint32_t	ttl = 64;
+uint32_t	sequence = 0;
+uint32_t	duplicate_count = 0;
+uint32_t	error_count = 0;
+bool		current_sequence_already_responded = false;
+bool		suppress_dup_packet_reporting = false;
+bool		verbose = false;
+bool		raw_socket = true;
+char		*program_name = NULL;
+
+
+
 static char	const **recvmsg_flags_strings(int flags) {
 	static const struct {
 		int	bits;
@@ -35,24 +48,13 @@ static char	const **recvmsg_flags_strings(int flags) {
 static void ft_perror(char *header) {
 	char *err = strerror(errno);
 	
-	dprintf(2, "%s: %s\n", header, err);
+	dprintf(2, "%s: %s %s\n", program_name, header, err);
 }
 
 static double	timeval_to_double_ms(struct timeval time) {
 	return (double)time.tv_sec * 1000 // A second is 1000 ms....
 		+ (double)time.tv_usec / 1000; // a micro-second is 1/1000th of a ms....
 }
-
-
-int		g_socket_fd;
-uint32_t	ttl = 64;
-uint32_t	sequence = 0;
-uint32_t	duplicate_count = 0;
-uint32_t	error_count = 0;
-bool		current_sequence_already_responded = false;
-bool		suppress_dup_packet_reporting = false;
-bool		verbose = false;
-bool		raw_socket = true;
 
 
 int	set_socket_options(int fd) {
@@ -134,6 +136,8 @@ int main(int argc, char **argv) {
 	(void)argc;
 	(void)argv;
 
+	program_name = argv[0];
+	
 	int	opt_return;
 
 	while (-1 != (opt_return = ft_getopt(argc, argv, "vh"))) {
@@ -211,10 +215,10 @@ int main(int argc, char **argv) {
 	int socket_fd;
 
 	if (-1 == (socket_fd = socket(AF_INET, SOCK_RAW | SOCK_NONBLOCK, IPPROTO_ICMP))) { // First trying to get a raw socket.
-		if (errno == EACCES) { // Trying to create DGRAM socket
+		if (errno == EACCES || errno == EPERM) { // Trying to create DGRAM socket
 			socket_fd = socket(AF_INET, SOCK_DGRAM | SOCK_NONBLOCK, IPPROTO_ICMP);
 			if (-1 == socket_fd) {
-				if (errno == EACCES) {
+				if (errno == EACCES || errno == EPERM) {
 					ft_perror("Lacking privilege for icmp socket.");
 					exit(EXIT_FAILURE);
 				}
@@ -227,7 +231,7 @@ int main(int argc, char **argv) {
 			exit(EXIT_FAILURE);
 		}
 	} else {
-		dprintf(2, "Succesfully created a raw socket\n");
+		/* dprintf(2, "Succesfully created a raw socket\n"); */
 	}
 	
 	
@@ -255,8 +259,6 @@ int main(int argc, char **argv) {
 	
 	struct timeval prev;	
 	gettimeofday(&start, NULL);
-
-	printf("sizeof(icmp): %lu\n", sizeof(struct icmp));
 
 	prev = start;
 	prev.tv_sec = 0; // We're just forcing the first packet to be send immediately;
@@ -323,10 +325,12 @@ int main(int argc, char **argv) {
 			sequence++;
 			gettimeofday(&prev, NULL);
 		}
-		/* receive_echo_reply(); */
-		/* receive_error_message(); */
-
-		receive_response();
+		if (raw_socket) {
+			receive_response();
+		} else {
+			receive_echo_reply();
+			receive_error_message();
+		}
 		usleep(20);
 	}
 }
