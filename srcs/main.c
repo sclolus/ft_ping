@@ -75,15 +75,15 @@ int	set_socket_options(int fd) {
 		return -1;
 	}
 	
-	/* if (-1 == setsockopt(fd, IPPROTO_IP, IP_RECVOPTS, &yes, sizeof(yes))) { */
-	/* 	ft_perror("setsockopt(IP_RECVTTL)"); */
-	/* 	return -1; */
-	/* } */
+	if (-1 == setsockopt(fd, IPPROTO_IP, IP_RECVOPTS, &yes, sizeof(yes))) {
+		ft_perror("setsockopt(IP_RECVTTL)");
+		return -1;
+	}
 	
-	/* if (-1 == setsockopt(fd, IPPROTO_IP, IP_RETOPTS, &yes, sizeof(yes))) { */
-	/* 	ft_perror("setsockopt(IP_RECVTTL)"); */
-	/* 	return -1; */
-	/* } */
+	if (-1 == setsockopt(fd, IPPROTO_IP, IP_RETOPTS, &yes, sizeof(yes))) {
+		ft_perror("setsockopt(IP_RECVTTL)");
+		return -1;
+	}
 
 	return 0;
 }
@@ -96,7 +96,7 @@ double		sum = 0.0;
 double		sum_of_squares = 0.0;
 uint64_t	packets_sent = 0;
 uint64_t	packets_received = 0;
-uint16_t	identity = 0;
+uint16_t	identity = 1;
 
 enum {
 	RAW_ADDRESS,
@@ -145,6 +145,9 @@ int main(int argc, char **argv) {
 
 		switch (current_option) {
 		case 'v':
+			#ifdef MODERN_PING
+			suppress_dup_packet_reporting = false;
+			#endif
 			verbose = true;
 			break;
 		case 'h':
@@ -169,6 +172,27 @@ int main(int argc, char **argv) {
 
 	pinged_address = argument_address;
 
+	int socket_fd;
+	int socket_type = SOCK_RAW;
+
+	if (-1 == (socket_fd = socket(AF_INET, SOCK_RAW | SOCK_NONBLOCK, IPPROTO_ICMP))) { // First trying to get a raw socket.
+		if (errno == EACCES || errno == EPERM) { // Trying to create DGRAM socket
+			socket_fd = socket(AF_INET, SOCK_DGRAM | SOCK_NONBLOCK, IPPROTO_ICMP);
+			if (-1 == socket_fd) {
+				if (errno == EACCES || errno == EPERM) {
+					ft_perror("Lacking privilege for icmp socket.");
+					exit(EXIT_FAILURE);
+				}
+				ft_perror("socket()");
+				exit(EXIT_FAILURE);
+			}
+			socket_type = SOCK_DGRAM;
+			raw_socket = false;
+		} else {
+			ft_perror("socket()");
+			exit(EXIT_FAILURE);
+		}
+	}
 	uint8_t	resolved_address[INET_ADDRSTRLEN];
 
 	struct in_addr	   internet_address;
@@ -182,10 +206,8 @@ int main(int argc, char **argv) {
 	if (res == 0) {
 		struct addrinfo hints = {
 			.ai_family = AF_INET,
-			/* .ai_socktype = SOCK_DGRAM, */
-			.ai_socktype = SOCK_RAW,
+			.ai_socktype = socket_type,
 			.ai_protocol = IPPROTO_ICMP,
-			/* .ai_protocol = 0, */
 			.ai_flags = 0,
 		};
 		
@@ -212,28 +234,6 @@ int main(int argc, char **argv) {
 
 	inet_ntop(AF_INET, &socket_address.sin_addr, (char*)resolved_address, sizeof(resolved_address));
 
-	int socket_fd;
-
-	if (-1 == (socket_fd = socket(AF_INET, SOCK_RAW | SOCK_NONBLOCK, IPPROTO_ICMP))) { // First trying to get a raw socket.
-		if (errno == EACCES || errno == EPERM) { // Trying to create DGRAM socket
-			socket_fd = socket(AF_INET, SOCK_DGRAM | SOCK_NONBLOCK, IPPROTO_ICMP);
-			if (-1 == socket_fd) {
-				if (errno == EACCES || errno == EPERM) {
-					ft_perror("Lacking privilege for icmp socket.");
-					exit(EXIT_FAILURE);
-				}
-				ft_perror("socket()");
-				exit(EXIT_FAILURE);
-			}
-			raw_socket = false;
-		} else {
-			ft_perror("socket()");
-			exit(EXIT_FAILURE);
-		}
-	} else {
-		/* dprintf(2, "Succesfully created a raw socket\n"); */
-	}
-	
 	
 	if (-1 == set_socket_options(socket_fd)) {
 		ft_perror("set_socket_options()");
@@ -699,6 +699,7 @@ no_original_icmp:
 }
 
 void	receive_response() {
+	assert(raw_socket);
 	struct msghdr		msg;
 	struct sockaddr_in	source_address;
 	int			flags = MSG_DONTWAIT;
@@ -741,7 +742,9 @@ void	receive_response() {
 
 	uint8_t source_address_hostname_str[NI_MAXHOST];
 	uint8_t	source_address_raw_str[INET_ADDRSTRLEN];
-		
+
+	ft_bzero(source_address_hostname_str, sizeof(source_address_hostname_str));
+	ft_bzero(source_address_raw_str, sizeof(source_address_raw_str));
 	inet_ntop(AF_INET, &source_address.sin_addr,
 		  (char *)source_address_raw_str, sizeof(source_address_raw_str));
 	getnameinfo((const struct sockaddr *)&source_address, sizeof(source_address),
@@ -760,17 +763,10 @@ void	receive_response() {
 		return ;
 	}
 	
-	if (raw_socket) {
-		ip_header = *(struct ip*)(cursor);
-
-		/* print_ip_header(cursor); */
-		ip_header_len = ip_header.ip_hl << 2; // the size is given in qwords (uint32_t)
-
-		cursor += ip_header_len;
-		packet_size_left -= ip_header_len;
-	} else {
-		assert(0);
-	}
+	ip_header = *(struct ip*)(cursor);
+	ip_header_len = ip_header.ip_hl << 2; // the size is given in qwords (uint32_t)
+	cursor += ip_header_len;
+	packet_size_left -= ip_header_len;
 
 	if (packet_size_left < ICMP_MINLEN) {
 		dprintf(2, "packet too short (%ld bytes) from %s\n", ret, source_address_raw_str);
@@ -812,34 +808,40 @@ void	receive_response() {
 		return ;
 	}
 
-	int	packet_ttl = ip_header.ip_ttl; // if not found resort to default ttl
+	int	packet_ttl = ip_header.ip_ttl;
 	
 
-	/* if (argument_address_type == RAW_ADDRESS) { */
+	if (argument_address_type == RAW_ADDRESS) {
 		printf("%ld bytes from %s: ", ret, source_address_raw_str);
-	/* } else { */
-	/* 	printf("%ld bytes from %s (%s): ", ret, source_address_hostname_str); */
-	/* } */
+	} else {
+		printf("%ld bytes from %s (%s): ", ret, source_address_hostname_str, source_address_raw_str);
+	}
 
 	if (icmp_header->type == ICMP_ECHOREPLY) {
-		struct timeval	time_then = *(struct timeval *)(cursor);
-		struct timeval	now;
+		bool		round_trip_available = false;
+		struct timeval	time_then;
+		double		diff_ms;
+		
+		if (packet_size_left >= sizeof(struct timeval)) {
+			time_then = *(struct timeval *)(cursor);
+			struct timeval	now;
 
-		cursor += sizeof(struct timeval);
-		gettimeofday(&now, NULL);
+			cursor += sizeof(struct timeval);
+			gettimeofday(&now, NULL);
 
-		double	time_then_ms = timeval_to_double_ms(time_then);
-		double	now_ms	     = timeval_to_double_ms(now);
-		double	diff_ms	     = now_ms - time_then_ms;
+			double	time_then_ms = timeval_to_double_ms(time_then);
+			double	now_ms	     = timeval_to_double_ms(now);
+			diff_ms		     = now_ms - time_then_ms;
 
-		if (diff_ms <= min)
-			min = diff_ms;
-		if (diff_ms >= max)
-			max = diff_ms;
-		sum += diff_ms;
-		sum_of_squares += diff_ms * diff_ms;
-	
+			if (diff_ms <= min)
+				min = diff_ms;
+			if (diff_ms >= max)
+				max = diff_ms;
+			sum += diff_ms;
+			sum_of_squares += diff_ms * diff_ms;
 
+			round_trip_available = true;
+		}
 		char	*payload = (char*)msg_buffer + sizeof(struct icmphdr) + sizeof(struct timeval);
 		(void)payload; // for debugging
 
@@ -855,7 +857,11 @@ void	receive_response() {
 			current_sequence_already_responded = true;
 		}
 
-		printf("icmp_seq=%u ttl=%u time=%3.3lf ms%s\n", icmp_header->un.echo.sequence, packet_ttl, diff_ms, extra);
+		if (round_trip_available) {
+			printf("icmp_seq=%u ttl=%u time=%3.3lf ms%s\n", icmp_header->un.echo.sequence, packet_ttl, diff_ms, extra);
+		} else {
+			printf("icmp_seq=%u ttl=%u ms%s\n", icmp_header->un.echo.sequence, packet_ttl, extra);
+		}
 	} else {
 
 		for (uint32_t i = 0; i < icmp_descriptions_size; i++) {
