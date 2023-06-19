@@ -79,6 +79,12 @@ int	set_socket_options(int fd) {
 		ft_perror("setsockopt(IP_RECVTTL)");
 		return -1;
 	}
+
+	if (-1 == setsockopt(fd, SOL_SOCKET, SO_BROADCAST, &yes, sizeof(yes))) {
+		ft_perror("setsockopt(IP_RECVTTL)");
+		return -1;
+	}
+
 	return 0;
 }
 
@@ -131,7 +137,7 @@ int main(int argc, char **argv) {
 	
 
 	if (argc <= g_optind) {
-		dprintf(2, "ft_ping: usage error: Destination address required\n");
+		dprintf(2, "ft_ping: missing host operand\n");
 		exit(EXIT_FAILURE);
 	}
 
