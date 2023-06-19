@@ -7,16 +7,12 @@ echo The pings will be tested against custom icmp error scheme: $2 $3
 
 sudo ./pong $2 $3  > /dev/null & 
 PONG_PID=$!
-echo $PONG_PID is the now pong pid
 sleep 1
 
 ./scripts/generate-output.sh $1 ${@:4}
 
-echo Killing and waiting for $PONG_PID
 # setsid sudo kill $PONG_PID # Fuck my goddamn life...
-sudo pkill -SIGINT pong
-sudo pkill -SIGKILL pong
-wait $PONG_PID
-echo $PONG_PID was killed and waited for...
+sudo pkill -SIGKILL pong > /dev/null 2>/dev/null
+wait $PONG_PID >/dev/null 2>/dev/null
 
 sudo ./scripts/turn_on_icmp_echo.sh
