@@ -67,9 +67,6 @@ void	print_ip_header(struct ip *ip) {
 	       destination);
 	printf("\n");
 
-
-	uint32_t	ip_header_len = ip->ip_hl << 4;
-
 	// Because when receiving a icmp error message, the data section contains the ip header + 8 bytes of it's data section
 	// which in our case is the original icmp header we sent.
 	struct icmphdr	*icmp_header = (struct icmphdr*)(ip + 1); //TODO use ip_header_len instead
