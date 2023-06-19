@@ -49,5 +49,6 @@ void		end(int signum);
 uint16_t	icmp_checksum(void *data, uint32_t len);
 void		print_icmp_header(struct icmphdr *icmp, uint32_t size);
 void		print_ip_header(struct ip *ip);
+void		print_ip_header_with_dump(struct ip *ip);
 uint16_t	ft_ntohs(uint16_t netshort);
 #endif

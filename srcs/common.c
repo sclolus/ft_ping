@@ -51,24 +51,7 @@ void	print_ip_header(struct ip *ip) {
 	inet_ntop(AF_INET, &ip->ip_src, (char *)source, sizeof(source));
 	inet_ntop(AF_INET, &ip->ip_dst, (char *)destination, sizeof(destination));
 	
-
-	printf("IP Hdr Dump:\n ");
-	for (uint32_t	i = 0; i < sizeof(struct ip); i++) {
-		uint8_t	current_byte = *((uint8_t *)ip + i);
-		
-		bool group = i % 2 == 0;
-
-		char	*group_str;
-		
-		if (group)
-			group_str = "";
-		else
-			group_str = " ";
-		
-		printf("%02x%s", current_byte, group_str);
-	}
-
-	printf("\nVr HL TOS  Len   ID Flg  off TTL Pro  cks      Src\tDst\tData\n");
+	printf("Vr HL TOS  Len   ID Flg  off TTL Pro  cks      Src\tDst\tData\n");
 	printf(" %1x  %1x  %02x %04x %04x   %1x %04x  %02x  %02x %04x %s  %s ",
 	       ip->ip_v,
 	       ip->ip_hl,
@@ -94,3 +77,22 @@ void	print_ip_header(struct ip *ip) {
 	print_icmp_header(icmp_header, ft_ntohs(ip->ip_len) - sizeof(struct ip));
 }
 
+void	print_ip_header_with_dump(struct ip *ip) {
+	printf("IP Hdr Dump:\n ");
+	for (uint32_t	i = 0; i < sizeof(struct ip); i++) {
+		uint8_t	current_byte = *((uint8_t *)ip + i);
+		
+		bool group = i % 2 == 0;
+
+		char	*group_str;
+		
+		if (group)
+			group_str = "";
+		else
+			group_str = " ";
+		
+		printf("%02x%s", current_byte, group_str);
+	}
+	printf("\n");
+	print_ip_header(ip);
+}
