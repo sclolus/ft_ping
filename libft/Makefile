@@ -1,6 +1,6 @@
 NAME= libft.a
 CC= gcc
-FLAGS= -Wall -Wextra -Werror -Ofast #-g3 -fsanitize=address -fsanitize-blacklist=blacklist.txt
+FLAGS= -Wall -Wextra -Werror -Ofast
 SRC=	 ft_pow.c \
 		ft_atoi.c \
 		ft_atohu.c \
