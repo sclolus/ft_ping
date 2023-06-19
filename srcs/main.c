@@ -574,21 +574,27 @@ void	print_specific_icmp_code(int type, int code, uint32_t type_index, struct ic
 }
 
 static void	parameter_problem(struct icmphdr *icmp, struct ip* ip) {
-	uint8_t	address_raw_str[INET_ADDRSTRLEN];	
-	/* struct in_addr addr = icmp->un.gateway; */
-	/* uint32_t       raw = (ft_ntohs(*(uint16_t*)&addr) | 2)  | ((*((uint16_t*)&addr + 1) | 2) << 16); */
-
+	uint8_t	address_raw_str[INET_ADDRSTRLEN];
+	
 	inet_ntop(AF_INET, (struct in_addr *)&icmp->un.gateway,
 		  (char *)address_raw_str, sizeof(address_raw_str));
 
-	printf("Parameter problem: IP address = %s\n", address_raw_str);
-	print_ip_header(ip);
+	printf("Parameter problem: IP address = %s\n", inet_ntoa(*(struct in_addr*)&icmp->un.gateway));
+	if (verbose)
+		print_ip_header_with_dump(ip);
+	else
+		print_ip_header(ip);
 }
 
 static void	source_quench(struct icmphdr *icmp, struct ip* ip) {
 	printf("Source Quench\n");
 	(void)icmp;
-	print_ip_header(ip);
+
+	if (verbose)
+		print_ip_header_with_dump(ip);
+	else
+		print_ip_header(ip);
+	
 }
 
 void	receive_error_message() {
@@ -812,6 +818,7 @@ void	receive_response() {
 	}
 
 	icmp_header = (struct icmphdr*)(cursor);
+
 	
 	struct ip	 *original_ip_header = NULL;
 	struct icmphdr	 *original_icmp_header = NULL;
@@ -823,7 +830,6 @@ void	receive_response() {
 	case ICMP_ADDRESSREPLY:
 	case ICMP_TIMESTAMPREPLY:
 	case ICMP_TIMESTAMP:
-
 		original_icmp_header = icmp_header;
 		break;
 	case ICMP_ECHO:

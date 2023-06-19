@@ -30,7 +30,6 @@ echo "echo-reply default
 	echo-request default
 	time-exceeded time-to-live-exceeded
 	time-exceeded frag-reassembly-time-exceeded
-	parameter-prob requested-option-absent
 	timestamp default
 	timestamp-reply default
 	info-request default
