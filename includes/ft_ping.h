@@ -29,8 +29,13 @@
 # define USAGE "Usage\n\
   ft_ping [options] <destination>\n\
 Options:\n\
-  -v                 verbose output\n\
+  -c <n>	     stop after sending <n> packets \n\
+  -f		     flood ping\n\
   -h                 print help and exit\n\
+  -i <interval>	     wait <interval> seconds between sending each packet\n\
+  -t <ttl>	     specify <ttl> as time-to-live \n\
+  -v                 verbose output\n\
+  -w <linger_timer>  number of seconds to wait for response\n\
 For more details see ping(8)\n"
 
 # define ICMP_UNKNOWN_TYPE NR_ICMP_TYPES
