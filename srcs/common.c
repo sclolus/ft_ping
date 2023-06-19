@@ -1,5 +1,10 @@
 #include "ft_ping.h"
 
+uint16_t	ft_ntohs(uint16_t netshort) {
+	if (ft_get_endianness() == FT_BIG_ENDIAN)
+		return netshort;
+	return (netshort << 8) | (netshort >> 8);
+}
 
 uint16_t	icmp_checksum(void *data, uint32_t len) {
 
@@ -33,7 +38,7 @@ uint16_t	icmp_checksum(void *data, uint32_t len) {
 void	print_icmp_header(struct icmphdr *icmp, uint32_t size) {
 	printf("ICMP: type %u, code %u, size %u", icmp->type, icmp->code, size);
 	if (icmp->type == ICMP_ECHO || icmp->type == ICMP_ECHOREPLY) {
-		printf(" id 0x%04x, seq 0x%04x", icmp->un.echo.id, icmp->un.echo.sequence);
+		printf(", id 0x%04x, seq 0x%04x", icmp->un.echo.id, icmp->un.echo.sequence);
 	}
 	printf("\n");
 }
@@ -68,13 +73,13 @@ void	print_ip_header(struct ip *ip) {
 	       ip->ip_v,
 	       ip->ip_hl,
 	       ip->ip_tos,
-	       ip->ip_len, // So we need to ntohs this when we think it's appropriate...
-	       ip->ip_id,
-	       ip->ip_off & 0xe000 >> 13,
-	       ip->ip_off & IP_OFFMASK,
+	       ft_ntohs(ip->ip_len), // So we need to ntohs this when we think it's appropriate...
+	       ft_ntohs(ip->ip_id),
+	       (ft_ntohs(ip->ip_off) & 0xe000) >> 13,
+	       ft_ntohs(ip->ip_off) & IP_OFFMASK,
 	       ip->ip_ttl,
 	       ip->ip_p,
-	       ip->ip_sum,
+	       ft_ntohs(ip->ip_sum),
 	       source,
 	       destination);
 	printf("\n");
@@ -86,5 +91,6 @@ void	print_ip_header(struct ip *ip) {
 	// which in our case is the original icmp header we sent.
 	struct icmphdr	*icmp_header = (struct icmphdr*)(ip + 1); //TODO use ip_header_len instead
 	
-	print_icmp_header(icmp_header, ip->ip_len - ip_header_len);
+	print_icmp_header(icmp_header, ft_ntohs(ip->ip_len) - sizeof(struct ip));
 }
+

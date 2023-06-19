@@ -51,7 +51,6 @@ struct {
 	{ ICMP_DEST_UNREACH, ICMP_PKT_FILTERED, "pkt-filtered" },
 	{ ICMP_DEST_UNREACH, ICMP_PREC_VIOLATION, "precedence-violation" },
 	{ ICMP_DEST_UNREACH, ICMP_PREC_CUTOFF, "precedence-cutoff" },
-	{ ICMP_DEST_UNREACH, ICMP_HOST_UNR_TOS, "destination-host-unreachable-at-this-tos" },
 	{ ICMP_REDIRECT, ICMP_REDIR_NET, "redirect-network" },
 	{ ICMP_REDIRECT, ICMP_REDIR_HOST, "redirect-host" },
 	{ ICMP_REDIRECT, ICMP_REDIR_NETTOS, "redirect-type-of-service-and-network" },
@@ -159,11 +158,14 @@ int main(int argc, char **argv) {
 			    NULL, 0, 0);
 		inet_ntop(AF_INET, &source_address.sin_addr,
 			  (char *)source_address_raw_str, sizeof(source_address_raw_str));
+		printf("----------------------------------------------------------\n");
+		printf("Received icmp packet from %s (%s)\n", source_address_hostname_str, source_address_raw_str);
+
 
 		if ((size_t)ret < ICMP_MINLEN + sizeof(struct timeval)) {
-			dprintf(2, "packet too short (%ld bytes) from %s\n", ret, source_address_raw_str);
-			dprintf(2, "Skipping this packet...");
-			continue ;
+			dprintf(1, "packet too short (%ld bytes) from %s\n", ret, source_address_raw_str);
+			dprintf(1, "Skipping this packet...");
+			goto end_of_packet_processing;
 		}
 
 		struct icmphdr	*icmp_header;
@@ -174,9 +176,9 @@ int main(int argc, char **argv) {
 		uint32_t	ip_header_len = 0;
 
 		if (packet_size_left < sizeof(struct ip)) {
-			dprintf(2, "packet too short (%ld bytes) from %s\n", ret, source_address_raw_str);
-			dprintf(2, "Skipping this packet...");
-			continue ;
+			dprintf(1, "packet too short (%ld bytes) from %s\n", ret, source_address_raw_str);
+			dprintf(1, "Skipping this packet...");
+			goto end_of_packet_processing;
 		}
 	
 		ip_header = (struct ip*)(cursor);
@@ -186,18 +188,18 @@ int main(int argc, char **argv) {
 		packet_size_left -= ip_header_len;
 
 		if (packet_size_left < ICMP_MINLEN) {
-			dprintf(2, "packet too short (%ld bytes) from %s\n", ret, source_address_raw_str);
-			dprintf(2, "Skipping this packet...");
-			continue ;
+			dprintf(1, "packet too short (%ld bytes) from %s\n", ret, source_address_raw_str);
+			dprintf(1, "Skipping this packet...");
+			goto end_of_packet_processing;
 		}
 
 		icmp_header = (struct icmphdr*)(cursor);
+		printf("sequence %x == %x\n", icmp_header->un.echo.sequence, identity);
+
 		if (icmp_header->un.echo.sequence == identity) { // Dropping our own packet
-			/* dprintf(2, "Dropping our own packet\n"); */
-			continue ;
+			dprintf(1, "Dropping our own packet\n");
+			goto end_of_packet_processing;
 		}
-		printf("----------------------------------------------------------\n");
-		printf("Received icmp packet from %s (%s)\n", source_address_hostname_str, source_address_raw_str);
 		print_icmp_header(icmp_header, (size_t)ret);
 
 		uint8_t		icmp_message[sizeof (struct ip) + sizeof (struct icmphdr) * 2];
@@ -206,6 +208,9 @@ int main(int argc, char **argv) {
 		int		send_flags = 0;
 		struct icmphdr	header;
 
+		ft_bzero(icmp_message, sizeof(icmp_message));
+		ft_bzero(&header, sizeof(header));
+		
 		header.type = get_icmp_type(type);
 		header.code = get_icmp_code(code);
 		header.checksum = 0;
@@ -216,7 +221,7 @@ int main(int argc, char **argv) {
 		
 		header.un.echo.id = icmp_header->un.echo.id;
 		header.un.echo.sequence = identity;
-
+		
 		uint32_t	offset = 0;
 		
 		ft_bzero(icmp_message, sizeof(icmp_message));
@@ -251,6 +256,7 @@ int main(int argc, char **argv) {
 		}
 		printf("Send back an ICMP response of type:\n");
 		print_icmp_header(&header, packet_size);
+	end_of_packet_processing:
 		printf("----------------- END OF PACKET PROCESSING ---------------\n");
 	}
 }

@@ -9,20 +9,20 @@ echo Collecting output from ft_ping
 echo Executing cmd ["./ft_ping ${@:2}"]
 ./ft_ping ${@:2} > ft.log &
 PID=$!
-sleep $1
+sleep "$1".1
 echo Killing ft_ping...
-sync
 kill -SIGINT $PID
+wait $PID
 echo ft_ping was killed.
 
 echo collecting output from the real ping
 echo Executing cmd ["${REAL_PING} ${@:2}"]
 ${REAL_PING} ${@:2} > real.log &
 PID=$!
-sleep $1
+sleep "$1".1
 echo Killing the real ping...
-sync
 kill -SIGINT $PID
+wait $PID
 echo The real ping was killed.
 
 ./scripts/better_compare_ping_output.sh ft.log real.log
