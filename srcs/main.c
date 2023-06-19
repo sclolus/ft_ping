@@ -579,7 +579,7 @@ static void	parameter_problem(struct icmphdr *icmp, struct ip* ip) {
 	inet_ntop(AF_INET, (struct in_addr *)&icmp->un.gateway,
 		  (char *)address_raw_str, sizeof(address_raw_str));
 
-	printf("Parameter problem: IP address = %s\n", inet_ntoa(*(struct in_addr*)&icmp->un.gateway));
+	printf("Parameter problem: IP address = %s\n", address_raw_str);
 	if (verbose)
 		print_ip_header_with_dump(ip);
 	else
