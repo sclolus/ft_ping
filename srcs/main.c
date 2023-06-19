@@ -184,9 +184,10 @@ int main(int argc, char **argv) {
 		int failure = getaddrinfo(argument_address, NULL, &hints, &matched_addresses);
 
 		if (failure) {
-			const char *error_string = gai_strerror(failure);
+			/* const char *error_string = gai_strerror(failure); */
 			
-			dprintf(2, "ft_ping: %s: %s\n", argument_address, error_string);
+			/* dprintf(2, "ft_ping: %s: %s\n", argument_address, error_string); */
+			dprintf(2, "ft_ping: unknown host\n");
 			exit(EXIT_FAILURE);
 		}
 
@@ -296,7 +297,7 @@ int main(int argc, char **argv) {
 			receive_response();
 		} else {
 			receive_echo_reply();
-			receive_error_message();
+			/* receive_error_message(); */ // Actually the subject ping doesn't do that so...
 		}
 		usleep(20);
 	}
@@ -470,7 +471,7 @@ struct {
 } icmp_descriptions[] = {
 	{ ICMP_ECHOREPLY, "Echo Reply", NULL, NULL, true },
 	{ ICMP_DEST_UNREACH, NULL, "Dest Unreachable", NULL, true },       
-	{ ICMP_SOURCE_QUENCH, "Source Quench", NULL, NULL, false },      // Special
+	{ ICMP_SOURCE_QUENCH, "Source Quench", NULL, NULL, true },      // Special
 	{ ICMP_REDIRECT, NULL, "Redirect", NULL, true },           
 	{ ICMP_ECHO, "Echo Request", NULL, NULL, true },               
 	{ ICMP_TIME_EXCEEDED, NULL, "Time exceeded", NULL, true },      
@@ -606,7 +607,7 @@ void	receive_error_message() {
 }
 
 bool	is_our_icmp_response(struct icmphdr header) {
-	return header.un.echo.id == identity && header.type == ICMP_ECHOREPLY; // TODO: Actually we should add check for origin dst and src since one might use the same ident
+	return header.un.echo.id == identity /* && header.type == ICMP_ECHOREPLY */; // TODO: Actually we should add check for origin dst and src since one might use the same ident
 }
 
 

@@ -42,7 +42,8 @@ echo "echo-reply default
     do
 	FILENAME="`echo $line | sed 's/ /\-/g'`.sh"
 	
-	echo "#!/bin/bash 
+	echo "#!/bin/bash
+echo Executing [./scripts/generate-output-custom-errors.sh \$1 $line \${@:2}]
 ./scripts/generate-output-custom-errors.sh \$1 $line \${@:2}
 " > tests/$FILENAME
 	chmod +x tests/$FILENAME

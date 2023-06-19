@@ -13,8 +13,9 @@ sleep 1
 ./scripts/generate-output.sh $1 ${@:4}
 
 echo Killing and waiting for $PONG_PID
-setsid sudo kill $PONG_PID # Fuck my goddamn life...
-
+# setsid sudo kill $PONG_PID # Fuck my goddamn life...
+sudo pkill -SIGINT pong
+sudo pkill -SIGKILL pong
 wait $PONG_PID
 echo $PONG_PID was killed and waited for...
 

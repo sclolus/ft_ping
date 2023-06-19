@@ -10,4 +10,4 @@
 ./scripts/generate-output.sh $1 -v wikipedia.fr   
 ./scripts/generate-output.sh $1 localhost
 ./scripts/generate-output.sh $1 -v localhost
-
+./scripts/generate-output.sh $1 192.168.8.3
