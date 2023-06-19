@@ -14,7 +14,6 @@ uint16_t	icmp_checksum(void *data, uint32_t len) {
 	uint16_t	*current_dword = (uint16_t*)data;
 	uint16_t	odd_byte = 0;
 
-	assert(len % 2 == 0); // We're just no gonna bother with the odd size case...
 	while (i < dword_size) {
 		sum += current_dword[i];
 
