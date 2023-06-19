@@ -4,8 +4,7 @@ GENERAL_TEST=./tests/all-errors.sh
 rm -f $GENERAL_TEST
 echo "#!/bin/bash" >> $GENERAL_TEST
 
-echo "echo-reply default
-	destination-unreachable destination-net-unreachable
+echo "	destination-unreachable destination-net-unreachable
 	destination-unreachable destination-host-unreachable
 	destination-unreachable destination-protocol-unreachable
 	destination-unreachable destination-port-unreachable
