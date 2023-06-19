@@ -12,6 +12,7 @@ PID=$!
 sleep "$1".1
 echo Killing ft_ping...
 kill -SIGINT $PID
+wait $PID
 echo ft_ping was killed.
 
 echo collecting output from the real ping
@@ -21,6 +22,7 @@ PID=$!
 sleep "$1".1
 echo Killing the real ping...
 kill -SIGINT $PID
+wait $PID
 echo The real ping was killed.
 
 ./scripts/better_compare_ping_output.sh ft.log real.log
