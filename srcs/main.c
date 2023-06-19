@@ -487,7 +487,7 @@ void	receive_echo_reply() {
 		dprintf(2, "Response of unknown type received\n");
 	}
 
-	if (count == packets_received)
+	if (count_mode && count == packets_received)
 		end(0);
 }
 
@@ -918,7 +918,7 @@ void	receive_response() {
 			print_ip_header(original_ip_header);
 		break;
 	}
-	if (count == packets_received)
+	if (count_mode && count == packets_received)
 		end(0);
 }
 
