@@ -90,8 +90,8 @@ int	set_socket_options(int fd) {
 
 const char	*pinged_address;
 struct timeval	start;
-double		min = INFINITY;
-double		max = -INFINITY;
+double		min = 999999999.000;
+double		max = 0.0;
 double		sum = 0.0;
 double		sum_of_squares = 0.0;
 uint64_t	packets_sent = 0;
@@ -675,7 +675,10 @@ void	receive_error_message() {
 }
 
 bool	is_our_icmp_response(struct icmphdr header) {
-	return header.un.echo.id == identity /* && header.type == ICMP_ECHOREPLY */; // TODO: Actually we should add check for origin dst and src since one might use the same ident
+	return header.un.echo.id == identity && (header.type == ICMP_ECHO
+						 || header.type == ICMP_ECHOREPLY
+						 || header.type == ICMP_TIMESTAMPREPLY
+						|| header.type == ICMP_ADDRESSREPLY); // TODO: Actually we should add check for origin dst and src since one might use the same ident
 }
 
 
@@ -811,12 +814,13 @@ void	receive_response() {
 	case ICMP_ECHOREPLY:
 	case ICMP_ADDRESSREPLY:
 	case ICMP_TIMESTAMPREPLY:
+	case ICMP_TIMESTAMP:
+
 		original_icmp_header = icmp_header;
 		break;
 	case ICMP_ECHO:
 	case ICMP_ADDRESS:
 		return ;  // For now we silently drop packet where there is no orginal ip header and therefor original icmp header
-	case ICMP_TIMESTAMP:
 	default:
 		if (!get_original_headers(icmp_header, packet_size_left, &original_icmp_header, &original_ip_header)) {
 			dprintf(2, "packet too short (%ld bytes) from %s\n", ret, source_address_raw_str);
@@ -854,6 +858,12 @@ void	receive_response() {
 	case ICMP_TIMESTAMP:
 	case ICMP_ADDRESS:
 	case ICMP_ADDRESSREPLY:
+		if (icmp_header->type == ICMP_TIMESTAMP) {
+			packet_size_left -= sizeof(struct timeval); // Kill me please
+			packet_size_without_ip_header -= sizeof(struct timeval);
+		}
+			
+		
 #ifndef MODERN_PING
 		printf("%u bytes from %s: ", packet_size_without_ip_header, source_address_raw_str);
 #endif
