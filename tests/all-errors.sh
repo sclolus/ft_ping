@@ -1,5 +1,4 @@
 #!/bin/bash
-./tests/echo-reply-default.sh $1 ${@:2} localhost
 ./tests/destination-unreachable-destination-net-unreachable.sh $1 ${@:2} localhost
 ./tests/destination-unreachable-destination-host-unreachable.sh $1 ${@:2} localhost
 ./tests/destination-unreachable-destination-protocol-unreachable.sh $1 ${@:2} localhost
