@@ -606,7 +606,7 @@ void	receive_error_message() {
 }
 
 bool	is_our_icmp_response(struct icmphdr header) {
-	return header.un.echo.id == identity && header.type == ICMP_ECHO; // TODO: Actually we should add check for origin dst and src since one might use the same ident
+	return header.un.echo.id == identity && header.type == ICMP_ECHOREPLY; // TODO: Actually we should add check for origin dst and src since one might use the same ident
 }
 
 
