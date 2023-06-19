@@ -119,10 +119,17 @@ int main(int argc, char **argv) {
 	program_name = argv[0];
 	int	opt_return;
 
-	while (-1 != (opt_return = ft_getopt(argc, argv, "vhfi:c:w:"))) {
+	while (-1 != (opt_return = ft_getopt(argc, argv, "vhfi:c:w:t:"))) {
 		char	current_option = (char)opt_return;
 
 		switch (current_option) {
+		case 't':
+			ttl = ft_atou(g_optarg);
+			if (ttl == 0) {
+				dprintf(2, "ft_ping: ttl too small: 0\n");
+				exit(EXIT_FAILURE);
+			}
+			break;
 		case 'w':
 			linger_time = ft_atou(g_optarg);
 			break;
@@ -339,7 +346,7 @@ int main(int argc, char **argv) {
 			/* receive_error_message(); */ // Actually the subject ping doesn't do that so...
 		}
 
-		if (count <= packets_sent) {
+		if (count_mode && count <= packets_sent) {
 			gettimeofday(&now, NULL);
 				
 			double	time_then_ms = timeval_to_double_ms(time_when_count_was_reached);
