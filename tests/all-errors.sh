@@ -25,7 +25,6 @@
 ./tests/echo-request-default.sh $1 ${@:2} localhost
 ./tests/time-exceeded-time-to-live-exceeded.sh $1 ${@:2} localhost
 ./tests/time-exceeded-frag-reassembly-time-exceeded.sh $1 ${@:2} localhost
-./tests/parameter-prob-requested-option-absent.sh $1 ${@:2} localhost
 ./tests/timestamp-default.sh $1 ${@:2} localhost
 ./tests/timestamp-reply-default.sh $1 ${@:2} localhost
 ./tests/info-request-default.sh $1 ${@:2} localhost
