@@ -768,7 +768,7 @@ void	receive_response() {
 		if (errno == EAGAIN || errno == EWOULDBLOCK) { // Socket hasn't received packet yet.
 			return ;
 		}
-		dprintf(2, "Silently ignoring error...\n");
+		/* dprintf(2, "Silently ignoring error...\n"); */
 		return ;
 
 	}
