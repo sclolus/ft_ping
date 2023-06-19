@@ -101,6 +101,10 @@ bool		rolling_packets_received[1024];
 uint32_t	rolling_packets = sizeof(rolling_packets_received);
 bool		flood_mode = false;
 uint32_t	interval = 1;
+bool		count_mode = false;
+uint32_t	count = 0;
+struct timeval	time_when_count_was_reached;
+uint32_t	linger_time = 3;
 
 enum {
 	RAW_ADDRESS,
@@ -115,14 +119,30 @@ int main(int argc, char **argv) {
 	program_name = argv[0];
 	int	opt_return;
 
-	while (-1 != (opt_return = ft_getopt(argc, argv, "vhfi:"))) {
+	while (-1 != (opt_return = ft_getopt(argc, argv, "vhfi:c:w:"))) {
 		char	current_option = (char)opt_return;
 
 		switch (current_option) {
+		case 'w':
+			linger_time = ft_atou(g_optarg);
+			break;
+		case 'c':
+			count_mode = true;
+			count = ft_atou(g_optarg);
+			break;
 		case 'i':
+			if (flood_mode) {
+				dprintf(2, "ft_ping: -f and -i incompatible options");
+				exit(EXIT_FAILURE);
+			}
+
 			interval = ft_atou(g_optarg);
 			break;
 		case 'f':
+			if (interval != 1) {
+				dprintf(2, "ft_ping: -f and -i incompatible options");
+				exit(EXIT_FAILURE);
+			}
 			flood_mode = true;
 			break;
 		case 'v':
@@ -253,7 +273,8 @@ int main(int argc, char **argv) {
 		double		ms_diff = timeval_to_double_ms(now) - timeval_to_double_ms(prev);
 
 
-		if (ms_diff >= 1000.0 * interval || flood_mode) { // we're due to send a packet.		
+		if ((!count_mode || (count_mode && packets_sent < count)) &&  // We need to know if there is packets left to send
+			(ms_diff >= 1000.0 * interval || flood_mode)) { // we're due to send a packet.		
 			int		flags = MSG_DONTWAIT;
 			struct icmphdr	header;
 
@@ -304,6 +325,11 @@ int main(int argc, char **argv) {
 			packets_sent++;
 			sequence++;
 			gettimeofday(&prev, NULL);
+
+			if (packets_sent >= count) {
+				time_when_count_was_reached = prev;
+			}
+			
 		}
 		
 		if (raw_socket) {
@@ -311,6 +337,17 @@ int main(int argc, char **argv) {
 		} else {
 			receive_echo_reply();
 			/* receive_error_message(); */ // Actually the subject ping doesn't do that so...
+		}
+
+		if (count <= packets_sent) {
+			gettimeofday(&now, NULL);
+				
+			double	time_then_ms = timeval_to_double_ms(time_when_count_was_reached);
+			double	now_ms	     = timeval_to_double_ms(now);
+			double	diff_ms	     = now_ms - time_then_ms;
+
+			if (diff_ms >= linger_time * 1000.)
+				end(0);
 		}
 		usleep(20);
 	}
@@ -442,6 +479,9 @@ void	receive_echo_reply() {
 	} else {
 		dprintf(2, "Response of unknown type received\n");
 	}
+
+	if (count == packets_received)
+		end(0);
 }
 
 struct {
@@ -871,7 +911,8 @@ void	receive_response() {
 			print_ip_header(original_ip_header);
 		break;
 	}
-
+	if (count == packets_received)
+		end(0);
 }
 
 void	statistics(void) {
