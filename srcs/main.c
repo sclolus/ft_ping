@@ -651,8 +651,7 @@ void	receive_response() {
 	assert(raw_socket);
 	struct msghdr		msg;
 	struct sockaddr_in	source_address;
-	/* int			flags = MSG_DONTWAIT; */
-	int			flags = 0;
+	int			flags = MSG_DONTWAIT;
 
 	uint8_t			msg_buffer[4096]; // Way too big buffer for receving the ECHO_REPLY...
 	uint8_t			control_buffer[20480]; // net.core.optmem_max
