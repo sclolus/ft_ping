@@ -99,6 +99,8 @@ uint64_t	packets_received = 0;
 uint16_t	identity = 1;
 bool		rolling_packets_received[1024];
 uint32_t	rolling_packets = sizeof(rolling_packets_received);
+bool		flood_mode = false;
+uint32_t	interval = 1;
 
 enum {
 	RAW_ADDRESS,
@@ -113,10 +115,16 @@ int main(int argc, char **argv) {
 	program_name = argv[0];
 	int	opt_return;
 
-	while (-1 != (opt_return = ft_getopt(argc, argv, "vh"))) {
+	while (-1 != (opt_return = ft_getopt(argc, argv, "vhfi:"))) {
 		char	current_option = (char)opt_return;
 
 		switch (current_option) {
+		case 'i':
+			interval = ft_atou(g_optarg);
+			break;
+		case 'f':
+			flood_mode = true;
+			break;
 		case 'v':
 			#ifdef MODERN_PING
 			suppress_dup_packet_reporting = true;
@@ -245,9 +253,8 @@ int main(int argc, char **argv) {
 		double		ms_diff = timeval_to_double_ms(now) - timeval_to_double_ms(prev);
 
 
-		if (ms_diff >= 1000) { // we're due to send a packet.		
+		if (ms_diff >= 1000.0 * interval || flood_mode) { // we're due to send a packet.		
 			int		flags = MSG_DONTWAIT;
-			/* int flags = 0; */
 			struct icmphdr	header;
 
 			header.type = ICMP_ECHO;
