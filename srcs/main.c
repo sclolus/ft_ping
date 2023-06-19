@@ -140,6 +140,10 @@ int main(int argc, char **argv) {
 		case 'c':
 			count_mode = true;
 			count = ft_atou(g_optarg);
+			if (count == 0) {
+				dprintf(2, "ft_ping: count too small: %u\n", count);
+				exit(EXIT_FAILURE);
+			}
 			break;
 		case 'i':
 			if (flood_mode) {
@@ -491,7 +495,7 @@ void	receive_echo_reply() {
 		dprintf(2, "Response of unknown type received\n");
 	}
 
-	if (count_mode && count == packets_received)
+	if (count_mode && count <= packets_received)
 		end(0);
 }
 
@@ -922,7 +926,7 @@ void	receive_response() {
 			print_ip_header(original_ip_header);
 		break;
 	}
-	if (count_mode && count == packets_received)
+	if (count_mode && count <= packets_received)
 		end(0);
 }
 
