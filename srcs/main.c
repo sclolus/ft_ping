@@ -734,7 +734,6 @@ no_original_icmp:
 }
 
 void	receive_response() {
-	assert(raw_socket);
 	struct msghdr		msg;
 	struct sockaddr_in	source_address;
 	int			flags = MSG_DONTWAIT;

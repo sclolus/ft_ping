@@ -15,8 +15,6 @@
 # include <stdbool.h>
 # include <sys/time.h>
 
-# include <assert.h>
-
 # include "libft.h"
 
 
