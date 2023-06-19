@@ -126,8 +126,12 @@ int main(int argc, char **argv) {
 		case 't':
 			ttl = ft_atou(g_optarg);
 			if (ttl == 0) {
-				dprintf(2, "ft_ping: ttl too small: 0\n");
+				dprintf(2, "ft_ping: ttl too small: %u\n", ttl);
 				exit(EXIT_FAILURE);
+			} else if (ttl > 255) {
+				dprintf(2, "ft_ping: ttl too big: %u\n", ttl);
+				exit(EXIT_FAILURE);
+				
 			}
 			break;
 		case 'w':
