@@ -24,8 +24,9 @@
 # define MAX(a, b) (a <= b ? b : a)
 # define ITEM_COUNT(t) (sizeof(t) / sizeof(*t))
 
-# define USAGE "Usage\n\
-  ft_ping [options] <destination>\n\
+# define USAGE "Usage: ft_ping [OPTION...] HOST ...\n\
+Send ICMP ECHO_REQUEST packets to network hosts.\n\
+\n\
 Options:\n\
   -c <n>	     stop after sending <n> packets \n\
   -f		     flood ping\n\
@@ -33,8 +34,9 @@ Options:\n\
   -i <interval>	     wait <interval> seconds between sending each packet\n\
   -t <ttl>	     specify <ttl> as time-to-live \n\
   -v                 verbose output\n\
-  -w <linger_timer>  number of seconds to wait for response\n\
-For more details see ping(8)\n"
+  -w <linger_timer>  number of seconds to wait for response\n"
+
+# define MORE_INFORMATION "Try './ft_ping -h' or './ft_ping -?' for more information.\n"
 
 # define ICMP_UNKNOWN_TYPE NR_ICMP_TYPES
 # define ICMP_UNKNOWN_CODE ((uint8_t)-1)

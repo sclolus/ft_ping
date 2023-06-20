@@ -119,7 +119,9 @@ int main(int argc, char **argv) {
 	program_name = argv[0];
 	int	opt_return;
 
-	while (-1 != (opt_return = ft_getopt(argc, argv, "vhfi:c:w:t:"))) {
+	g_opterr = 0;
+
+	while (-1 != (opt_return = ft_getopt(argc, argv, "vhfi:c:w:t:?"))) {
 		char	current_option = (char)opt_return;
 
 		switch (current_option) {
@@ -171,6 +173,24 @@ int main(int argc, char **argv) {
 			exit(EXIT_FAILURE);
 			break;
 		case '?':
+			if (ft_strchr("vhficwt", g_optopt)) { // Missing argument
+			  dprintf(2, "ft_ping: option requires an argument -- '%c'\n", g_optopt);
+			  dprintf(2, MORE_INFORMATION);
+			  exit(EXIT_FAILURE);			  
+			}
+			else if (g_optopt != '?') { // actually the option
+			  dprintf(2, "ft_ping: invalid option -- '%c'\n", g_optopt);
+			  dprintf(2, MORE_INFORMATION);
+			  exit(EXIT_FAILURE);
+			} else {
+			  dprintf(2, "%s", USAGE);
+			  exit(EXIT_FAILURE);
+			}
+			break;
+		case ':':
+		  dprintf(2, "ping: option requires an argument -- '%c'", g_optopt);
+		  exit(EXIT_FAILURE);
+		  break;
 		default:
 			dprintf(2, "\n%s", USAGE);
 			exit(EXIT_FAILURE);
