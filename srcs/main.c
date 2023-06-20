@@ -984,8 +984,7 @@ void	statistics(void) {
 
 	double time = timeval_to_double_ms(end) - timeval_to_double_ms(start);
 
-	double packet_loss = (1.0 - (double)packets_received / (double)packets_sent) * 100;
-
+	double packet_loss = (1.0 - (double)packets_received / (double)packets_sent) * 100.;
 
 	double avg = sum / (double)packets_received;
 	double mdev;
@@ -1011,7 +1010,7 @@ void	statistics(void) {
 	printf("--- %s ping statistics ---\n", pinged_address);
 	/* printf("%lu packets transmitted, %lu packets received%s%s, %.0lf%% packet loss, time %.0lfms\n", packets_sent, packets_received, optional_dup, optional_error, packet_loss, time); */
 	(void)time;
-	printf("%lu packets transmitted, %lu packets received%s%s, %.0lf%% packet loss\n", packets_sent, packets_received, optional_dup, optional_error, packet_loss);
+	printf("%lu packets transmitted, %lu packets received%s%s, %.0lf%% packet loss\n", packets_sent, packets_received, optional_dup, optional_error, (double)(int64_t)packet_loss);
 
 	if (packets_received != 0) 
 		printf("round-trip min/avg/max/stddev = %.3lf/%.3lf/%.3lf/%.3lf ms\n", min, avg, max, mdev);
