@@ -201,6 +201,7 @@ int main(int argc, char **argv) {
 
 	if (argc <= g_optind) {
 		dprintf(2, "ft_ping: missing host operand\n");
+		dprintf(2, MORE_INFORMATION);
 		exit(EXIT_FAILURE);
 	}
 
